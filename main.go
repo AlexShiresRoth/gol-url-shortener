@@ -17,17 +17,10 @@ func main() {
 
 	fmt.Println(http.StatusOK)
 
-	// Check api status
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-
 	r.POST("/shorten", shorten_url.ShortenUrl)
 
 	r.GET("/get-url/*short_url", shorten_url.GetOriginalUrlFromDb)
 
 	// Start serving the application
-	r.Run()
+	http.ListenAndServe(":8080", r)
 }

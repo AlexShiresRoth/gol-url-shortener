@@ -60,9 +60,7 @@ func ShortenUrl(c *gin.Context) {
 		return
 	}
 
-	defer db.Close()
-	// Shorten the url
-	c.JSON(200, gin.H{"shortened_url": short_url})
+	c.JSON(http.StatusAccepted, gin.H{"shortened_url": short_url})
 }
 
 func GetOriginalUrlFromDb(c *gin.Context) {
@@ -76,8 +74,6 @@ func GetOriginalUrlFromDb(c *gin.Context) {
 		//create slice of string from index 1 to end
 		cleaned_short_url = short_url[1:]
 	}
-
-	fmt.Println("this is the param", cleaned_short_url)
 
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("short_urls"))
