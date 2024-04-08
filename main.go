@@ -19,7 +19,7 @@ func main() {
 
 	r.POST("/shorten", shorten_url.ShortenUrl)
 
-	r.GET("/get-url/*short_url", shorten_url.GetOriginalUrlFromDb)
+	r.GET("/get-url/:id", shorten_url.GetOriginalUrlFromDb)
 
 	// Start serving the application
 	http.ListenAndServe(":8080", r)

@@ -15,19 +15,6 @@ type Payload struct {
 	Url string `json:"url"`
 }
 
-func shorten(url string) (string, error) {
-	var shortURL string
-	err := db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("short_urls"))
-		id, _ := bucket.NextSequence()
-		shortURL = fmt.Sprintf("https://shorti.com/%d", id)
-
-		return bucket.Put([]byte(shortURL), []byte(url))
-	})
-
-	return shortURL, err
-}
-
 func initDb() error {
 	var err error
 	db, err = bolt.Open("short_urls.db", 0600, nil)
@@ -44,6 +31,23 @@ func initDb() error {
 
 }
 
+func shorten(url string) (string, uint64, error) {
+	var shortURL string
+	var urlId uint64
+
+	err := db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("short_urls"))
+		id, _ := bucket.NextSequence()
+		urlId = uint64(id)
+		// Convert this to an env var
+		shortURL = fmt.Sprintf("https://shorti.com/%d", id)
+
+		return bucket.Put([]byte(shortURL), []byte(url))
+	})
+
+	return shortURL, urlId, err
+}
+
 func ShortenUrl(c *gin.Context) {
 
 	var payload Payload
@@ -53,31 +57,30 @@ func ShortenUrl(c *gin.Context) {
 		return
 	}
 
-	short_url, err := shorten(payload.Url)
+	short_url, id, err := shorten(payload.Url)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusAccepted, gin.H{"shortened_url": short_url})
+	c.JSON(http.StatusAccepted, gin.H{"shortened_url": short_url, "id": id})
 }
 
 func GetOriginalUrlFromDb(c *gin.Context) {
-	short_url := c.Param("short_url")
+	id := c.Param("id")
 
 	var url string
 
-	var cleaned_short_url string
+	// Remove the base URL from the short URL
+	// Want to store as env var eventually
+	short_url := fmt.Sprintf("https://shorti.com/%s", id)
 
-	if len(short_url) > 0 && short_url[0] == '/' {
-		//create slice of string from index 1 to end
-		cleaned_short_url = short_url[1:]
-	}
+	fmt.Print(short_url)
 
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("short_urls"))
-		url = string(bucket.Get([]byte(cleaned_short_url)))
+		url = string(bucket.Get([]byte(short_url)))
 		return nil
 	})
 
@@ -86,7 +89,7 @@ func GetOriginalUrlFromDb(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"url": url})
+	c.JSON(http.StatusOK, gin.H{"url": url, "short_url": short_url})
 }
 
 func init() {
