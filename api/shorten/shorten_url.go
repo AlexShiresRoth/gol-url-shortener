@@ -42,7 +42,7 @@ func shorten(url string) (string, uint64, error) {
 		// Convert this to an env var
 		shortURL = fmt.Sprintf("https://shorti.com/%d", id)
 
-		return bucket.Put([]byte(shortURL), []byte(url))
+		return bucket.Put([]byte(fmt.Sprintf("%d", id)), []byte(url)) // Store original URL with ID as the key
 	})
 
 	return shortURL, urlId, err
@@ -70,17 +70,13 @@ func ShortenUrl(c *gin.Context) {
 func GetOriginalUrlFromDb(c *gin.Context) {
 	id := c.Param("id")
 
-	var url string
-
-	// Remove the base URL from the short URL
-	// Want to store as env var eventually
-	short_url := fmt.Sprintf("https://shorti.com/%s", id)
-
-	fmt.Print(short_url)
+	var shortURL string
+	var originalURL string
 
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("short_urls"))
-		url = string(bucket.Get([]byte(short_url)))
+		originalURL = string(bucket.Get([]byte(id)))        // Retrieve original URL using ID as the key
+		shortURL = fmt.Sprintf("https://shorti.com/%s", id) // Construct short URL based on ID
 		return nil
 	})
 
@@ -89,7 +85,8 @@ func GetOriginalUrlFromDb(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"url": url, "short_url": short_url})
+	c.JSON(http.StatusOK, gin.H{"original_url": originalURL, "short_url": shortURL})
+
 }
 
 func init() {
