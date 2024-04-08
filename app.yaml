@@ -1,4 +1,9 @@
-runtime: go116
+runtime: go
+env: flex
+
+runtime_config:
+  operating_system: "ubuntu22"
+  runtime_version: "1.22"
 
 handlers:
   - url: /.*
